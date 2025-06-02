@@ -4,6 +4,7 @@ import com.example.Tic_Tac_Toe_Backend.model.GameMessage;
 import com.example.Tic_Tac_Toe_Backend.model.GameState;
 import com.example.Tic_Tac_Toe_Backend.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -29,6 +30,7 @@ public class GameController {
 
     @PostMapping("/game/create")
     public ResponseEntity<GameState> createGame(@RequestParam String playerName) {
+
         return ResponseEntity.ok(gameService.createGame(playerName));
     }
 
@@ -39,6 +41,8 @@ public class GameController {
 
     @GetMapping("/game/state/{gameId}")
     public ResponseEntity<GameState> getGame(@PathVariable String gameId) {
-        return ResponseEntity.ok(gameService.getGame(gameId));
+        GameState game = gameService.getGame(gameId);
+        if(game != null) return ResponseEntity.ok(game);
+        else return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(game);
     }
 }
