@@ -1,16 +1,25 @@
 package com.example.Tic_Tac_Toe_Backend.service;
-
 import com.example.Tic_Tac_Toe_Backend.model.GameMessage;
 import com.example.Tic_Tac_Toe_Backend.model.GameState;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class GameService {
-    private final Map<String, GameState> games = new HashMap<>();
+
+    private final Cache<String, GameState> games = Caffeine.newBuilder()
+            .maximumSize(1000)  // max 1000 active games
+                .expireAfterAccess(30, TimeUnit.MINUTES) // expire if not touched for 30 minutes
+                .build();
 
     public GameState createGame(String playerName) {
+        if (games.estimatedSize() >= 1000) {
+            return null; // too many active games
+        }
+
         String gameId = UUID.randomUUID().toString().substring(0, 8);
         GameState game = new GameState(gameId);
         game.addPlayer(playerName, "X");
@@ -19,7 +28,7 @@ public class GameService {
     }
 
     public GameState joinGame(String gameId, String playerName) {
-        GameState game = games.get(gameId);
+        GameState game = games.getIfPresent(gameId);
         if (game != null && game.getPlayers().size() == 1) {
             game.addPlayer(playerName, "O");
         }
@@ -27,30 +36,30 @@ public class GameService {
     }
 
     public GameState processMove(GameMessage message) {
-        GameState game = games.get(message.gameId());
+        GameState game = games.getIfPresent(message.gameId());
         if (game == null || game.getWinner() != null || game.isDraw()) return game;
 
         String[][] board = game.getBoard();
         int row = message.row();
         int col = message.col();
 
-        if ( board[row][col].isEmpty() && message.symbol().equals(game.getCurrentTurn())) {
+        if (board[row][col].isEmpty() && message.symbol().equals(game.getCurrentTurn())) {
             board[row][col] = message.symbol();
-
             if (checkWinner(board, message.symbol())) {
                 game.setWinner(message.playerName());
+                games.invalidate(message.gameId()); // remove on win
             } else if (checkDraw(board)) {
                 game.setDraw(true);
+                games.invalidate(message.gameId()); // remove on draw
             } else {
                 game.setCurrentTurn(message.symbol().equals("X") ? "O" : "X");
             }
         }
-
         return game;
     }
 
     public GameState getGame(String gameId) {
-        return games.get(gameId);
+        return games.getIfPresent(gameId);
     }
 
     private boolean checkWinner(String[][] board, String symbol) {
@@ -72,4 +81,5 @@ public class GameService {
         }
         return true;
     }
+
 }

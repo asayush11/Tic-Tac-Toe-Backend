@@ -30,13 +30,22 @@ public class GameController {
 
     @PostMapping("/game/create")
     public ResponseEntity<GameState> createGame(@RequestParam String playerName) {
-
-        return ResponseEntity.ok(gameService.createGame(playerName));
+        GameState gameState = gameService.createGame(playerName);
+        if(gameState != null){
+            return ResponseEntity.ok(gameState);
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(gameState);
+        }
     }
 
     @PostMapping("/game/join")
     public ResponseEntity<GameState> joinGame(@RequestParam String gameId, @RequestParam String playerName) {
-        return ResponseEntity.ok(gameService.joinGame(gameId, playerName));
+        GameState gameState = gameService.joinGame(gameId, playerName);
+        if(gameState != null){
+            return ResponseEntity.ok(gameState);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(gameState);
+        }
     }
 
     @GetMapping("/game/state/{gameId}")
