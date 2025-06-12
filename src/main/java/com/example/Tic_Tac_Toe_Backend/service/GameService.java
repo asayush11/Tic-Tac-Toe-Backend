@@ -3,6 +3,10 @@ import com.example.Tic_Tac_Toe_Backend.model.GameMessage;
 import com.example.Tic_Tac_Toe_Backend.model.GameState;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -10,9 +14,18 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class GameService {
 
+    @Autowired
+    MeterRegistry meterRegistry;
+
+    @PostConstruct
+    public void bindCaffeineCacheMetrics() {
+        CaffeineCacheMetrics.monitor(meterRegistry, games, "games");
+    }
+
     private final Cache<String, GameState> games = Caffeine.newBuilder()
             .maximumSize(1000)  // max 1000 active games
                 .expireAfterAccess(30, TimeUnit.MINUTES) // expire if not touched for 30 minutes
+                .recordStats()
                 .build();
 
     public GameState createGame(String playerName) {
