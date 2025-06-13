@@ -23,13 +23,13 @@ public class GameService {
     }
 
     private final Cache<String, GameState> games = Caffeine.newBuilder()
-            .maximumSize(2000)  // max 2000 active games
+            .maximumSize(20000)  // max 20000 active games
                 .expireAfterAccess(30, TimeUnit.MINUTES) // expire if not touched for 30 minutes
                 .recordStats()
                 .build();
 
     public GameState createGame(String playerName) {
-        if (games.estimatedSize() >= 2000) {
+        if (games.estimatedSize() >= 20000) {
             return null; // too many active games
         }
 
